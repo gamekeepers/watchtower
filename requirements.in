@@ -10,7 +10,10 @@ qdrant_client
 sentence-transformers
 transformers
 typer
-
+ujson
+PyPDF2
+grobid
+grobid[json]
 
 # OpenAI dependencies
 openai
