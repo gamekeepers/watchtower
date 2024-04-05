@@ -12,7 +12,7 @@ git clone git@github.com:gamekeepers/watchtower.git
 ## Software requirements:
 1. Grobid: for research paper pdf parsing
 2. Qdrant: for vector search
-3. sqlite: for storing parsed content and chat history
+3. sqlite: for storing pdf parsed content and chat history
 
 ## Install external services:
 1. Install Grobid  
@@ -20,7 +20,6 @@ git clone git@github.com:gamekeepers/watchtower.git
     ```bash
     sudo docker run -d --rm  --init --ulimit core=0 -p 8080:8070 grobid/grobid:0.8.0 
     ```
-
 2. Install Qdrant  
     Following command runs Qdrant in a docker container and exposes api on port 6333.  
     ```bash
@@ -41,9 +40,11 @@ git clone git@github.com:gamekeepers/watchtower.git
 
 
 ## Connecting to LLM
-We support several LLM providers. To use one of them, you need to set the `LLM_TYPE` environment variable. For example:
+We support several LLM providers.  
+OpenAI, Azure OpenAI, Bedrock LLM, AWS Config, Vertex AI, Mistral AI, Cohere
+To use one of them, you need to set the `LLM_TYPE` environment variable. For example:
 
-The following sub-sections define the configuration requirements of each supported LLM.
+The following sub-sections define the configuration requirements of OpenAI.
 ### OpenAI
 
 To use OpenAI LLM, you will need to provide the OpenAI key via `OPENAI_API_KEY` environment variable:
@@ -55,76 +56,8 @@ export OPENAI_API_KEY=...
 
 You can get your OpenAI key from the [OpenAI dashboard](https://platform.openai.com/account/api-keys).
 
-### Azure OpenAI
 
-If you want to use Azure LLM, you will need to set the following environment variables:
-
-```sh
-export LLM_TYPE=azure
-export OPENAI_VERSION=... # e.g. 2023-05-15
-export OPENAI_BASE_URL=...
-export OPENAI_API_KEY=...
-export OPENAI_ENGINE=... # deployment name in Azure
-```
-
-### Bedrock LLM
-
-To use Bedrock LLM you need to set the following environment variables in order to authenticate to AWS.
-
-```sh
-export LLM_TYPE=bedrock
-export AWS_ACCESS_KEY=...
-export AWS_SECRET_KEY=...
-export AWS_REGION=... # e.g. us-east-1
-export AWS_MODEL_ID=... # Default is anthropic.claude-v2
-```
-
-#### AWS Config
-
-Optionally, you can connect to AWS via the config file in `~/.aws/config` described here:
-https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html#configuring-credentials
-
-```
-[default]
-aws_access_key_id=...
-aws_secret_access_key=...
-region=...
-```
-
-### Vertex AI
-
-To use Vertex AI you need to set the following environment variables. More information [here](https://python.langchain.com/docs/integrations/llms/google_vertex_ai_palm).
-
-```sh
-export LLM_TYPE=vertex
-export VERTEX_PROJECT_ID=<gcp-project-id>
-export VERTEX_REGION=<gcp-region> # Default is us-central1
-export GOOGLE_APPLICATION_CREDENTIALS=<path-json-service-account>
-```
-
-### Mistral AI
-
-To use Mistral AI you need to set the following environment variables. The app has been tested with Mistral Large Model deployed through Microsoft Azure. More information [here](https://learn.microsoft.com/en-us/azure/ai-studio/how-to/deploy-models-mistral).
-
-```
-export LLM_TYPE=mistral
-export MISTRAL_API_KEY=...
-export MISTRAL_API_ENDPOINT=...  # should be of the form https://<endpoint>.<region>.inference.ai.azure.com
-export MISTRAL_MODEL=...  # optional
-```
-
-### Cohere
-
-To use Cohere you need to set the following environment variables:
-
-```
-export LLM_TYPE=cohere
-export COHERE_API_KEY=...
-export COHERE_MODEL=...  # optional
-```
-
-
-### Locally (for development)
+### Run Locally (for development)
 
 With the environment variables set, you can run the following commands to start the server and frontend.
 
@@ -147,19 +80,29 @@ python -m venv .venv
 source .venv/bin/activate
 
 # Install Python dependencies
-pip install -r api/requirements.txt
+pip install -r requirements.txt
 
 # Install Node dependencies
 cd frontend && yarn && cd ..
 ```
+#### Setup environment variables
+Copy env.sample  .env file  
+```sh
+cp env.sample .env
+```
+Populate `.env` file   
 
 #### Ingest data
-
+##### Set up data stores
+```sh
+cd api && python3 -u manage.py set-data-stores && cd ..
+```
+This will create a sqlite database and a qdrant collection for use by app
 ##### Indexing your own data
 ```sh
-cd api
-python3 -u manage.py index-data-from-directory /path/to/pdf/files
+cd api && python3 -u manage.py index-data-from-directory /path/to/pdf/files && cd ..
 ```
+Ensure both Grobid and Qdrant services are up.
 This will store parsed content in sqlite database and index the vectors in Qdrant.
 By default, this will index the data into the `literature-docs` index. You can change this by setting the `QDRANT_COLLECTION` environment variable.
 
