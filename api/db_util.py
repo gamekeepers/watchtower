@@ -24,7 +24,6 @@ def setup_sqlite_db():
     sqlite_client = sqlite3.connect(SQLITE_DB_PATH)
     sqlite_client.execute(
         "CREATE TABLE IF NOT EXISTS literatures (md5_hash TEXT PRIMARY KEY, title TEXT, content TEXT)")
-    print(f"Created sqlite db at: {SQLITE_DB_PATH}")
 
 def get_connection():
     return sqlite3.connect(SQLITE_DB_PATH)
