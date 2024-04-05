@@ -1,0 +1,34 @@
+# package management
+pip-tools
+
+# core dependencies
+flask
+flask-cors
+langchain
+python-dotenv
+qdrant_client
+sentence-transformers
+transformers
+typer
+
+
+# OpenAI dependencies
+openai
+
+# Vertex AI dependencies
+google-cloud-aiplatform
+grpcio-status
+
+# BedRock dependencies
+boto3
+
+# Mistral dependencies
+langchain-mistralai
+
+# Cohere dependencies
+cohere
+
+# TBD if these are still needed
+exceptiongroup
+importlib-metadata
+numexpr
