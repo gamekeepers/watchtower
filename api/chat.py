@@ -1,5 +1,5 @@
+from dotenv import load_dotenv
 from langchain_community.chat_message_histories import SQLChatMessageHistory
-from qdrant_client import QdrantClient, models
 
 import vector_util
 from llm_integrations import get_llm
@@ -8,19 +8,14 @@ from flask import render_template, stream_with_context, current_app
 import json
 import os
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(f"{BASE_DIR}/../.env")
+
+SQLITE_DB_PATH = os.getenv("SQLITE_DB_PATH", "")
+
 SESSION_ID_TAG = "[SESSION_ID]"
 SOURCE_TAG = "[SOURCE]"
 DONE_TAG = "[DONE]"
-
-SQLITE_FILE = os.getenv("SQLITE_FILE", "/home/ankush/workplace/tryout_repos/chatbot-rag-app/data/literature_qa.db")
-
-QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
-QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "literature-docs")
-
-model_id = 'naver/splade-cocondenser-ensembledistil'
-tokenizer, model = vector_util.get_tokenizer_model(model_id)
-
-q_client = QdrantClient(QDRANT_URL)
 
 
 @stream_with_context
@@ -29,7 +24,7 @@ def ask_question(question, session_id):
     current_app.logger.debug("Chat session ID: %s", session_id)
 
     chat_history = SQLChatMessageHistory(
-        session_id=session_id, connection_string=f"sqlite:///{SQLITE_FILE}"
+        session_id=session_id, connection_string=f"sqlite:///{SQLITE_DB_PATH}"
     )
 
     if len(chat_history.messages) > 0:

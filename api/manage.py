@@ -1,3 +1,5 @@
+import sys
+
 import ujson
 
 from langchain.docstore.document import Document
@@ -7,12 +9,19 @@ import typer
 import hashlib
 from tqdm.auto import tqdm
 
-import pdf_util, vector_util
-from api import db_util
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def add_to_syspath(relative_path):
+    sys.path.insert(0, f"{BASE_DIR}/{relative_path}")
+
+
+add_to_syspath("..")
+
+from api import db_util, pdf_util, vector_util
 
 app = typer.Typer()
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(f"{BASE_DIR}/../.env")
 
 
