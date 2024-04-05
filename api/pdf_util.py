@@ -40,6 +40,9 @@ def parse_pdf_by_grobid(pdf_path=""):
         # return ujson.loads(article.to_json())  # raises Runtim
     except FileNotFoundError:
         print(f"File not found: {pdf_path}")
+    except requests.exceptions.ConnectionError as err:
+        # print(f"Connection error: {err}")
+        raise ConnectionError("Grobid server is not reachable")
     except Exception as err:
         print(traceback.format_exc())
 
