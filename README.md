@@ -23,7 +23,12 @@ git clone git@github.com:gamekeepers/watchtower.git
 2. Install Qdrant  
     Following command runs Qdrant in a docker container and exposes api on port 6333.  
     ```bash
+   # create persistent qdrant storage directory
+   mkdir -p ~/.watchtower/qdrant_storage
     sudo docker run -d -p 6333:6333 qdrant/qdrant:latest
+   sudo docker run -d -p 6333:6333 \
+    -v ~/.watchtower/qdrant_storage:/qdrant/storage:z \
+    qdrant/qdrant
     ```
     Qdrant dashboard can be accessed at http://localhost:6333/dashboard
 
