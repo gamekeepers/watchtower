@@ -5,7 +5,7 @@
 Download the project from Github and extract the `watchtower` folder.
 
 ```bash
-git clone /path/to/app
+git clone git@github.com:gamekeepers/watchtower.git
 ```
 
 
