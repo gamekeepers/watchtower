@@ -51,7 +51,7 @@ def get_paragraphs_from_pdf_content(pdf_content) -> list:
     paragraphs = []
     # append abstract
     title = pdf_content.get("bibliography", {"title": ""}).get("title", "")
-
+    paper_hash = pdf_content.get("md5_hash", "")
     abstract = pdf_content.get("abstract", "")
     sections = pdf_content["sections"]
     if abstract:
@@ -59,10 +59,12 @@ def get_paragraphs_from_pdf_content(pdf_content) -> list:
     # title = article_content["title"]
     for section_id, section in enumerate(sections):
         section_title = section["title"]
+        # TODO: use model for this
         for para_id, para in enumerate(section["paragraphs"]):
-            para["pdf_path"]= pdf_content["pdf_path"]
+            para["pdf_path"] = pdf_content["pdf_path"]
             para["para_id"] = f"{section_id}_{para_id}"
             para["paper_title"] = title
+            para["paper_hash"] = paper_hash
             para["section_title"] = section_title
             paragraphs.append(para)
     return paragraphs
