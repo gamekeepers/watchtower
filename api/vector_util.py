@@ -27,6 +27,7 @@ s_time = time.time()
 tokenizer, model = get_tokenizer_model(EMBEDDING_MODEL)
 print(f"Time taken to load model: {time.time() - s_time} seconds")
 
+
 def setup_qdrant_collection():
     q_client = QdrantClient(QDRANT_URL)
     if not QDRANT_URL:
@@ -150,6 +151,40 @@ def index_vector(payload):
         )
     except Exception as err:
         print(traceback.format_exc())
+
+
+def check_if_indexed(paper_hash):
+    q_client = QdrantClient(QDRANT_URL)
+
+    result = q_client.count(
+        collection_name=QDRANT_COLLECTION,
+        count_filter=models.Filter(
+            must=[
+                models.FieldCondition(key="paper_hash", match=models.MatchValue(value=paper_hash)),
+            ]
+        ),
+        exact=True,
+    )
+    # print(type(result))
+    # print(result)
+    return int(result.count) > 0
+
+
+def delete_index(paper_hash):
+    q_client = QdrantClient(QDRANT_URL)
+    q_client.delete(
+        collection_name=QDRANT_COLLECTION,
+        points_selector=models.FilterSelector(
+            filter=models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="paper_hash",
+                        match=models.MatchValue(value=paper_hash),
+                    ),
+                ],
+            )
+        )
+    )
 
 
 def get_context_docs(query_text):
