@@ -37,7 +37,7 @@ def parse_pdf(pdf_path=""):
     cursor.execute("SELECT content FROM literatures WHERE md5_hash=?", (md5_hash,))
     row = cursor.fetchone()
     if row:
-        print(f"Found content in sqlite for md5_hash={md5_hash}")
+        # print(f"Found content in sqlite for md5_hash={md5_hash}")
         article_content = ujson.loads(row[0])
         article_content["pdf_path"] = pdf_path
         article_content["paper_hash"] = md5_hash
@@ -67,26 +67,29 @@ def process_pdf(pdf_path: str, overwrite: bool = False):
     Returns:
 
     """
+    filename = os.path.basename(pdf_path)
     page_count = pdf_util.count_pages(pdf_path)
     filesize = os.path.getsize(pdf_path) / (1024 * 1024)
     # TODO: move max page count to config
     if page_count > 20:
-        print(f"Skipping large file: {pdf_path}")
+        print(f"Skipping large file: {filename}")
         return
-    print(f"page_count={page_count}, size={filesize}|abs_path: {pdf_path}")
     article_content = parse_pdf(pdf_path)
     if not overwrite and vector_util.check_if_indexed(article_content["paper_hash"]):
-        print(f"Already indexed {pdf_path}")
+        # print(f"Already indexed {pdf_path}")
         return
     elif overwrite:
         print(f"Overwriting index for {article_content['paper_hash']}")
         vector_util.delete_index(article_content["paper_hash"])
+
     paragraphs = pdf_util.get_paragraphs_from_pdf_content(article_content)
+    if not paragraphs:
+        print(f"No paragraphs found in {filename}")
+        return
     para_docs = [Document(page_content=para["text"],
                           metadata=para) for para in paragraphs]
-    print(f"Indexing {len(para_docs)} paragraphs for {pdf_path}")
     chunked_para_docs = vector_util.chunk_docs(para_docs)
-    print(f"Chunked {len(chunked_para_docs)} paragraphs for {pdf_path}")
+    print(f"filesize: {filesize}, #pages: {page_count}, #paragraphs: {len(para_docs)}, #chunks: {len(chunked_para_docs)}  for {filename}")
     for chunk in chunked_para_docs:
         chunk.metadata["text"] = chunk.page_content
     # print(chunked_para_docs[0])
