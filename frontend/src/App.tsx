@@ -47,11 +47,10 @@ const App = () => {
   }
 
   const suggestedQueries = [
-    'What is our work from home policy?',
-    "What's the NASA sales team?",
-    'Does the company own my side project?',
-    'What job openings do we have?',
-    'How does compensation work?',
+    'What is skip-gram model?',
+    'What are dense embeddings?',
+    'What is negative contrastive estimation?',
+    'What is the difference between BERT and GPT-3?'
   ]
 
   return (
