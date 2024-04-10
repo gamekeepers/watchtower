@@ -11,10 +11,7 @@ def add_to_sys_path(path):
     sys.path.append(f"{basedir}/{path}")
 
 
-add_to_sys_path("../api")
-add_to_sys_path("../data")
-
-from index_literature_data import index_data_from_directory
+add_to_sys_path("..")
 
 app = Flask(__name__, static_folder="../frontend/build", static_url_path="/")
 CORS(app)
@@ -34,12 +31,6 @@ def api_chat():
 
     session_id = request.args.get("session_id", str(uuid4()))
     return Response(ask_question(question, session_id), mimetype="text/event-stream")
-
-
-@app.cli.command()
-@app.cli.argument("pdf_directory_path")
-def index_data(pdf_directory_path: str):
-    index_data_from_directory(pdf_directory_path)
 
 
 if __name__ == "__main__":

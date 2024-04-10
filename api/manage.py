@@ -1,3 +1,5 @@
+import sys
+
 import ujson
 
 from langchain.docstore.document import Document
@@ -7,12 +9,19 @@ import typer
 import hashlib
 from tqdm.auto import tqdm
 
-import pdf_util, vector_util
-from api import db_util
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def add_to_syspath(relative_path):
+    sys.path.insert(0, f"{BASE_DIR}/{relative_path}")
+
+
+add_to_syspath("..")
+
+from api import db_util, pdf_util, vector_util
 
 app = typer.Typer()
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(f"{BASE_DIR}/../.env")
 
 
@@ -20,7 +29,7 @@ def parse_pdf(pdf_path=""):
     # generate md5 hash for file
     file_content = open(pdf_path, "rb").read()
     md5_hash = hashlib.md5(file_content).hexdigest()
-    print(f"md5_hash={md5_hash}")
+    # print(f"md5_hash={md5_hash}")
     sqlite_client = db_util.get_connection()
     # if exists, return content from sqlite
     # TODO: move low level code to db_util
@@ -31,6 +40,7 @@ def parse_pdf(pdf_path=""):
         print(f"Found content in sqlite for md5_hash={md5_hash}")
         article_content = ujson.loads(row[0])
         article_content["pdf_path"] = pdf_path
+        article_content["paper_hash"] = md5_hash
         return article_content
 
     article_content = pdf_util.parse_pdf_by_grobid(pdf_path)
@@ -42,19 +52,35 @@ def parse_pdf(pdf_path=""):
     sqlite_client.commit()
     # add pdf path
     article_content["pdf_path"] = pdf_path
+    article_content["paper_hash"] = md5_hash
     return article_content
 
 
 @app.command()
-def process_pdf(pdf_path):
+def process_pdf(pdf_path: str, overwrite: bool = False):
+    """
+    Process pdf at pdf_path
+    Args:
+        pdf_path: path to pdf file
+        overwrite: overwrite index if true, else skip indexing
+
+    Returns:
+
+    """
     page_count = pdf_util.count_pages(pdf_path)
     filesize = os.path.getsize(pdf_path) / (1024 * 1024)
-
+    # TODO: move max page count to config
     if page_count > 20:
         print(f"Skipping large file: {pdf_path}")
         return
     print(f"page_count={page_count}, size={filesize}|abs_path: {pdf_path}")
     article_content = parse_pdf(pdf_path)
+    if not overwrite and vector_util.check_if_indexed(article_content["paper_hash"]):
+        print(f"Already indexed {pdf_path}")
+        return
+    elif overwrite:
+        print(f"Overwriting index for {article_content['paper_hash']}")
+        vector_util.delete_index(article_content["paper_hash"])
     paragraphs = pdf_util.get_paragraphs_from_pdf_content(article_content)
     para_docs = [Document(page_content=para["text"],
                           metadata=para) for para in paragraphs]
@@ -65,6 +91,7 @@ def process_pdf(pdf_path):
         chunk.metadata["text"] = chunk.page_content
     # print(chunked_para_docs[0])
     # index vectors corresponding to each paragraph
+
     for chunk in tqdm(chunked_para_docs):
         payload = {**chunk.metadata, "pdf_path": pdf_path}
         vector_util.index_vector(payload)
@@ -72,18 +99,41 @@ def process_pdf(pdf_path):
 
 # takes in argument directory path or glob pattern
 @app.command()
-def index_data_from_directory(directory_path: str):
-    # loop over all files that are pdfs
-    # TODO: Add support for glob patterns
-    print(f"Indexing data from directory: {directory_path}")
-    for file in tqdm(os.listdir(directory_path)):
-        if file.endswith(".pdf"):
-            abs_path = os.path.abspath(os.path.join(directory_path, file))
-            process_pdf(abs_path)
+def index_data_from_directory(directory_path: str, recursive: bool = True, overwrite: bool = False):
+    """
+    Indexes data from directory_path
+    Args:
+        directory_path: directory from where to index data
+        recursive: if True, recursively index data from subdirectories
+        overwrite: overwrite index if true, else skip indexing
+    Returns:
+
+    """
+    if not recursive:
+        print(f"Processing directory: {directory_path}")
+        for file in tqdm(os.listdir(directory_path)):
+            if file.endswith(".pdf"):
+                abs_path = os.path.join(directory_path, file)
+                print(f"Processing file: {abs_path}")
+                process_pdf(abs_path, overwrite=overwrite)
+        return
+
+    for root, dirs, files in os.walk(directory_path):
+        print(f"Processing directory: {root}")
+        for file in tqdm(files):
+            if file.endswith(".pdf"):
+                abs_path = os.path.join(root, file)
+                # print(f"Processing file: {abs_path}")
+                process_pdf(abs_path, overwrite=overwrite)
 
 
 @app.command()
 def set_data_stores():
+    """
+    Set SQLITE_DB_PATH and QDRANT_COLLECTION
+    Returns:
+
+    """
     # set SQLITE_DB_PATH directory
     db_util.setup_sqlite_db()
     # set QDRANT_COLLECTION

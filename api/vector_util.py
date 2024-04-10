@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import uuid
 
 import traceback
@@ -14,11 +15,21 @@ QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "literature-docs")
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "naver/splade-cocondenser-ensembledistil")
 
-q_client = QdrantClient(QDRANT_URL)
 
+def get_tokenizer_model(model_id):
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    model = AutoModelForMaskedLM.from_pretrained(model_id)
+    return tokenizer, model
+
+
+# TODO: appropriate time taking process elsewhere
+s_time = time.time()
+tokenizer, model = get_tokenizer_model(EMBEDDING_MODEL)
+print(f"Time taken to load model: {time.time() - s_time} seconds")
 
 
 def setup_qdrant_collection():
+    q_client = QdrantClient(QDRANT_URL)
     if not QDRANT_URL:
         raise ValueError(
             "Please provide QDRANT_URL"
@@ -43,16 +54,6 @@ def setup_qdrant_collection():
     except Exception as err:
         # print(traceback.format_exc())
         print(f"QDRANT_URL={QDRANT_URL} is not reachable")
-
-
-
-def get_tokenizer_model(model_id):
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
-    model = AutoModelForMaskedLM.from_pretrained(model_id)
-    return tokenizer, model
-
-
-tokenizer, model = get_tokenizer_model(EMBEDDING_MODEL)
 
 
 def compute_vector(text: str):
@@ -128,6 +129,7 @@ def chunk_docs(docs, chunk_size=512, chunk_overlap=256):
 
 
 def index_vector(payload):
+    q_client = QdrantClient(QDRANT_URL)
     try:
         vec, tokens = compute_vector(payload["text"])
         indices = vec.nonzero().numpy().flatten()
@@ -151,7 +153,42 @@ def index_vector(payload):
         print(traceback.format_exc())
 
 
+def check_if_indexed(paper_hash):
+    q_client = QdrantClient(QDRANT_URL)
+
+    result = q_client.count(
+        collection_name=QDRANT_COLLECTION,
+        count_filter=models.Filter(
+            must=[
+                models.FieldCondition(key="paper_hash", match=models.MatchValue(value=paper_hash)),
+            ]
+        ),
+        exact=True,
+    )
+    # print(type(result))
+    # print(result)
+    return int(result.count) > 0
+
+
+def delete_index(paper_hash):
+    q_client = QdrantClient(QDRANT_URL)
+    q_client.delete(
+        collection_name=QDRANT_COLLECTION,
+        points_selector=models.FilterSelector(
+            filter=models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="paper_hash",
+                        match=models.MatchValue(value=paper_hash),
+                    ),
+                ],
+            )
+        )
+    )
+
+
 def get_context_docs(query_text):
+    q_client = QdrantClient(QDRANT_URL)
     query_vec, query_tokens = compute_vector(query_text)
     # query_vec.shape
 

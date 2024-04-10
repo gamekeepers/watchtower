@@ -40,6 +40,9 @@ def parse_pdf_by_grobid(pdf_path=""):
         # return ujson.loads(article.to_json())  # raises Runtim
     except FileNotFoundError:
         print(f"File not found: {pdf_path}")
+    except requests.exceptions.ConnectionError as err:
+        # print(f"Connection error: {err}")
+        raise ConnectionError("Grobid server is not reachable")
     except Exception as err:
         print(traceback.format_exc())
 
@@ -48,7 +51,7 @@ def get_paragraphs_from_pdf_content(pdf_content) -> list:
     paragraphs = []
     # append abstract
     title = pdf_content.get("bibliography", {"title": ""}).get("title", "")
-
+    paper_hash = pdf_content.get("md5_hash", "")
     abstract = pdf_content.get("abstract", "")
     sections = pdf_content["sections"]
     if abstract:
@@ -56,10 +59,12 @@ def get_paragraphs_from_pdf_content(pdf_content) -> list:
     # title = article_content["title"]
     for section_id, section in enumerate(sections):
         section_title = section["title"]
+        # TODO: use model for this
         for para_id, para in enumerate(section["paragraphs"]):
-            para["pdf_path"]= pdf_content["pdf_path"]
+            para["pdf_path"] = pdf_content["pdf_path"]
             para["para_id"] = f"{section_id}_{para_id}"
             para["paper_title"] = title
+            para["paper_hash"] = paper_hash
             para["section_title"] = section_title
             paragraphs.append(para)
     return paragraphs
