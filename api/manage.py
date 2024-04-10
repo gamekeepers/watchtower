@@ -74,6 +74,7 @@ def process_pdf(pdf_path: str, overwrite: bool = False):
     if page_count > 20:
         print(f"Skipping large file: {filename}")
         return
+    print(f"page_count={page_count}, size={filesize}|abs_path: {pdf_path}")
     article_content = parse_pdf(pdf_path)
     if not overwrite and vector_util.check_if_indexed(article_content["paper_hash"]):
         # print(f"Already indexed {pdf_path}")
@@ -102,41 +103,18 @@ def process_pdf(pdf_path: str, overwrite: bool = False):
 
 # takes in argument directory path or glob pattern
 @app.command()
-def index_data_from_directory(directory_path: str, recursive: bool = True, overwrite: bool = False):
-    """
-    Indexes data from directory_path
-    Args:
-        directory_path: directory from where to index data
-        recursive: if True, recursively index data from subdirectories
-        overwrite: overwrite index if true, else skip indexing
-    Returns:
-
-    """
-    if not recursive:
-        print(f"Processing directory: {directory_path}")
-        for file in tqdm(os.listdir(directory_path)):
-            if file.endswith(".pdf"):
-                abs_path = os.path.join(directory_path, file)
-                print(f"Processing file: {abs_path}")
-                process_pdf(abs_path, overwrite=overwrite)
-        return
-
-    for root, dirs, files in os.walk(directory_path):
-        print(f"Processing directory: {root}")
-        for file in tqdm(files):
-            if file.endswith(".pdf"):
-                abs_path = os.path.join(root, file)
-                # print(f"Processing file: {abs_path}")
-                process_pdf(abs_path, overwrite=overwrite)
+def index_data_from_directory(directory_path: str):
+    # loop over all files that are pdfs
+    # TODO: Add support for glob patterns
+    print(f"Indexing data from directory: {directory_path}")
+    for file in tqdm(os.listdir(directory_path)):
+        if file.endswith(".pdf"):
+            abs_path = os.path.abspath(os.path.join(directory_path, file))
+            process_pdf(abs_path)
 
 
 @app.command()
 def set_data_stores():
-    """
-    Set SQLITE_DB_PATH and QDRANT_COLLECTION
-    Returns:
-
-    """
     # set SQLITE_DB_PATH directory
     db_util.setup_sqlite_db()
     # set QDRANT_COLLECTION
