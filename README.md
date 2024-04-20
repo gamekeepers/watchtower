@@ -1,11 +1,4 @@
-# Watchtower: Your literature chatbot
-
-<style>
-.custom-image {
-  width: 700px;
-  height: auto;
-}
-</style>
+# Watchtower: Your literature analysis tool
 
 <img src="./watchtower_screenshot.png" alt="image" class="custom-image">
 
